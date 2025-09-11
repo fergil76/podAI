@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -10,9 +17,8 @@ export default function LoginScreen({ navigation }) {
       Alert.alert("Error", "Por favor completa todos los campos.");
       return;
     }
-    // Usuario de prueba
     if (email === "test@test.com" && password === "1234") {
-      navigation.replace("Home", { email });
+      navigation.replace("Home");
     } else {
       Alert.alert("Error", "Email o contraseña incorrectos.");
     }
@@ -20,8 +26,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>PodAI</Text>
-      <Text style={styles.subtitle}>Tu asistente de poda y cuidado de árboles 🌿</Text>
+      <Text style={styles.title}>Iniciar Sesión</Text>
 
       <TextInput
         placeholder="Email"
@@ -29,7 +34,6 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
-        autoCapitalize="none"
       />
       <TextInput
         placeholder="Contraseña"
@@ -43,7 +47,8 @@ export default function LoginScreen({ navigation }) {
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.replace("Register")}>
+      {/* Link hacia registro */}
+      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
       </TouchableOpacity>
     </View>
@@ -51,54 +56,10 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#f8fafc"
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    textAlign: "center",
-    color: "#0f172a",
-    marginBottom: 4
-  },
-  subtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    color: "#475569",
-    marginBottom: 20
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e6eef6",
-    backgroundColor: "#ffffff",
-    padding: 14,
-    marginBottom: 14,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 2
-  },
-  button: {
-    backgroundColor: "#16A34A",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 6
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16
-  },
-  link: {
-    marginTop: 16,
-    textAlign: "center",
-    color: "#2563eb",
-    fontSize: 14
-  }
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 26, fontWeight: "700", marginBottom: 18, textAlign: "center", color: "#0f172a" },
+  input: { borderWidth: 1, borderColor: "#e5e7eb", padding: 12, marginBottom: 12, borderRadius: 8 },
+  button: { backgroundColor: "#16A34A", padding: 12, borderRadius: 10, alignItems: "center", marginTop: 8 },
+  buttonText: { color: "#fff", fontWeight: "700" },
+  link: { marginTop: 16, textAlign: "center", color: "#2563eb", fontWeight: "500" },
 });

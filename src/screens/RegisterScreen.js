@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -8,21 +15,22 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Error", "Por favor completa todos los campos");
+      Alert.alert("Error", "Por favor completa todos los campos.");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
+      Alert.alert("Error", "Las contraseñas no coinciden.");
       return;
     }
-    Alert.alert("¡Listo!", "Cuenta creada correctamente 🎉");
-    navigation.replace("Home", { email });
+
+    // Aquí en un futuro llamaremos al backend para registrar usuarios
+    Alert.alert("Registro exitoso", "Ahora puedes iniciar sesión.");
+    navigation.replace("Login"); // 🔑 vuelve automáticamente al Login
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Crear Cuenta</Text>
-      <Text style={styles.subtitle}>Empieza a cuidar tus árboles con PodAI</Text>
+      <Text style={styles.title}>Registro</Text>
 
       <TextInput
         placeholder="Email"
@@ -30,7 +38,6 @@ export default function RegisterScreen({ navigation }) {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
-        autoCapitalize="none"
       />
       <TextInput
         placeholder="Contraseña"
@@ -40,7 +47,7 @@ export default function RegisterScreen({ navigation }) {
         onChangeText={setPassword}
       />
       <TextInput
-        placeholder="Confirmar Contraseña"
+        placeholder="Confirmar contraseña"
         secureTextEntry
         style={styles.input}
         value={confirmPassword}
@@ -48,29 +55,21 @@ export default function RegisterScreen({ navigation }) {
       />
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Registrarse</Text>
+        <Text style={styles.buttonText}>Registrarme</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.replace("Login")}>
-        <Text style={styles.link}>¿Ya tienes cuenta? Inicia Sesión</Text>
+        <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24, backgroundColor: "#f8fafc" },
-  title: { fontSize: 28, fontWeight: "800", textAlign: "center", color: "#0f172a", marginBottom: 6 },
-  subtitle: { fontSize: 14, textAlign: "center", color: "#475569", marginBottom: 18 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e6eef6",
-    backgroundColor: "#fff",
-    padding: 14,
-    marginBottom: 12,
-    borderRadius: 12
-  },
-  button: { backgroundColor: "#2563eb", padding: 14, borderRadius: 12, alignItems: "center", marginTop: 6 },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  link: { marginTop: 14, textAlign: "center", color: "#2563eb" }
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 26, fontWeight: "700", marginBottom: 18, textAlign: "center", color: "#0f172a" },
+  input: { borderWidth: 1, borderColor: "#e5e7eb", padding: 12, marginBottom: 12, borderRadius: 8 },
+  button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 10, alignItems: "center", marginTop: 8 },
+  buttonText: { color: "#fff", fontWeight: "700" },
+  link: { marginTop: 16, textAlign: "center", color: "#16A34A", fontWeight: "500" },
 });
