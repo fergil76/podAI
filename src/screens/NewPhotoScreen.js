@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function ProfileScreen() {
+export default function NewPhotoScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>👤 Mi Perfil</Text>
-      <Text>Aquí verás la información de tu cuenta.</Text>
+      <Text style={styles.title}>📷 Nueva Foto</Text>
+      <Text>Sube o toma una foto de tu árbol.</Text>
     </View>
   );
 }

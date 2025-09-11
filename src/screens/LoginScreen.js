@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -14,40 +8,46 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = () => {
     if (!email || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos.");
+      Alert.alert("Error", "Por favor completa todos los campos");
       return;
     }
     if (email === "test@test.com" && password === "1234") {
       navigation.replace("Home");
     } else {
-      Alert.alert("Error", "Email o contraseña incorrectos.");
+      Alert.alert("Error", "Email o contraseña incorrectos");
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
+      <Text style={styles.title}>Bienvenido a PodAI 🌱</Text>
+      
+      <View style={styles.inputContainer}>
+        <Ionicons name="mail-outline" size={20} color="#6b7280" style={styles.icon} />
+        <TextInput
+          placeholder="Email"
+          keyboardType="email-address"
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
 
-      <TextInput
-        placeholder="Email"
-        keyboardType="email-address"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        placeholder="Contraseña"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.inputContainer}>
+        <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.icon} />
+        <TextInput
+          placeholder="Contraseña"
+          secureTextEntry
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+        />
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
 
-      {/* Link hacia registro */}
       <TouchableOpacity onPress={() => navigation.navigate("Register")}>
         <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
       </TouchableOpacity>
@@ -56,10 +56,21 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 26, fontWeight: "700", marginBottom: 18, textAlign: "center", color: "#0f172a" },
-  input: { borderWidth: 1, borderColor: "#e5e7eb", padding: 12, marginBottom: 12, borderRadius: 8 },
-  button: { backgroundColor: "#16A34A", padding: 12, borderRadius: 10, alignItems: "center", marginTop: 8 },
-  buttonText: { color: "#fff", fontWeight: "700" },
-  link: { marginTop: 16, textAlign: "center", color: "#2563eb", fontWeight: "500" },
+  container: { flex:1, justifyContent:'center', padding:20, backgroundColor:'#f9fafb' },
+  title: { fontSize:28, fontWeight:'700', marginBottom:28, textAlign:'center', color:'#16A34A' },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+    backgroundColor: "#fff",
+  },
+  icon: { marginRight: 6 },
+  input: { flex: 1, height: 45 },
+  button: { backgroundColor:'#16A34A', padding:14, borderRadius:10, alignItems:'center', marginTop:12 },
+  buttonText: { color:'#fff', fontWeight:'700', fontSize:16 },
+  link: { marginTop:15, color:'#16A34A', textAlign:'center' }
 });
