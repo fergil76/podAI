@@ -3,7 +3,7 @@ import { View, Button, Image, StyleSheet, TextInput, Alert } from 'react-native'
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function NewPhotoScreen({ navigation }) {
+function NewPhotoScreen({ navigation }) {
   const [image, setImage] = useState(null);
   const [text, setText] = useState('');
 
@@ -59,7 +59,7 @@ export default function NewPhotoScreen({ navigation }) {
 
       setImage(null);
       setText('');
-      navigation.navigate('Community');
+      navigation.navigate('Comunidad');
     } catch (error) {
       console.error("Error guardando publicación", error);
     }
@@ -85,6 +85,8 @@ export default function NewPhotoScreen({ navigation }) {
     </View>
   );
 }
+
+export default NewPhotoScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },

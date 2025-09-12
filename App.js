@@ -22,9 +22,10 @@ function Tabs({ onLogout }) {
       <Tab.Screen name="Árboles" component={TreesScreen} />
       <Tab.Screen name="Nueva Foto" component={NewPhotoScreen} />
       <Tab.Screen name="Comunidad" component={CommunityScreen} />
-      <Tab.Screen name="Perfil">
-        {() => <ProfileScreen onLogout={onLogout} />}
-      </Tab.Screen>
+      <Tab.Screen
+        name="Perfil"
+        children={() => <ProfileScreen onLogout={onLogout} />}
+      />
     </Tab.Navigator>
   );
 }
@@ -34,18 +35,23 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isLoggedIn ? (
-        <Tabs onLogout={() => setIsLoggedIn(false)} />
-      ) : (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login">
-            {() => <LoginScreen onLogin={() => setIsLoggedIn(true)} />}
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isLoggedIn ? (
+          <>
+            <Stack.Screen name="Login">
+              {() => <LoginScreen onLogin={() => setIsLoggedIn(true)} />}
+            </Stack.Screen>
+            <Stack.Screen
+              name="Register"
+              children={() => <RegisterScreen onRegister={() => setIsLoggedIn(true)} />}
+            />
+          </>
+        ) : (
+          <Stack.Screen name="Main">
+            {() => <Tabs onLogout={() => setIsLoggedIn(false)} />}
           </Stack.Screen>
-          <Stack.Screen name="Register">
-            {() => <RegisterScreen onRegister={() => setIsLoggedIn(true)} />}
-          </Stack.Screen>
-        </Stack.Navigator>
-      )}
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
