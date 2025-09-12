@@ -1,85 +1,64 @@
-// src/screens/LoginScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function LoginScreen({ onLogin, navigation, onShowRegister }) {
+export default function LoginScreen({ navigation, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Aquí puedes añadir validaciones básicas si quieres
-    if (!email.trim() || !password) {
-      Alert.alert('Error', 'Introduce email y contraseña');
-      return;
-    }
+  const handleLogin = async () => {
+    try {
+      const storedUsers = await AsyncStorage.getItem('users');
+      const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-    // Simulamos login: llamamos al prop onLogin pasado desde App.js
-    if (onLogin) {
-      onLogin();
-    } else {
-      Alert.alert('Info', 'Función de login no disponible (onLogin no pasada)');
-    }
-  };
+      const user = users.find(
+        (u) => u.email === email && u.password === password
+      );
 
-  const goToRegister = () => {
-    // Si recibimos navigation (Stack props) usamos navigate
-    if (navigation && typeof navigation.navigate === 'function') {
-      navigation.navigate('Register');
-      return;
+      if (user) {
+        if (onLogin) onLogin(user);
+      } else {
+        Alert.alert('Error', 'Email o contraseña incorrectos');
+      }
+    } catch (error) {
+      console.error('Error en login', error);
     }
-    // Si el padre pasó un callback para mostrar registro, lo usamos
-    if (onShowRegister && typeof onShowRegister === 'function') {
-      onShowRegister();
-      return;
-    }
-    // Si no hay forma de navegar, avisamos
-    Alert.alert('Info', 'No es posible navegar al registro desde aquí.');
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar sesión</Text>
-
+      <Text style={styles.title}>Iniciar Sesión</Text>
       <TextInput
         placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
       />
-
       <TextInput
         placeholder="Contraseña"
-        secureTextEntry
         value={password}
         onChangeText={setPassword}
+        secureTextEntry
         style={styles.input}
       />
-
-      <View style={styles.buttonWrap}>
-        <Button title="Entrar" onPress={handleLogin} />
-      </View>
-
-      <View style={styles.registerWrap}>
-        <Text style={styles.registerText}>¿No tienes cuenta?</Text>
-        <Button title="Crear cuenta" onPress={goToRegister} />
-      </View>
+      <Button title="Entrar" onPress={handleLogin} />
+      <View style={{ marginTop: 10 }} />
+      <Button
+        title="Crear cuenta"
+        onPress={() => navigation.navigate('Register')}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff' },
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
+    borderColor: '#ccc',
+    borderRadius: 5,
     padding: 10,
-    marginBottom: 12,
+    marginBottom: 15,
   },
-  buttonWrap: { marginTop: 6, marginBottom: 10 },
-  registerWrap: { marginTop: 18, alignItems: 'center' },
-  registerText: { color: '#666', marginBottom: 6 },
 });
