@@ -1,3 +1,4 @@
+// src/screens/HomeScreen.js
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -7,28 +8,26 @@ export default function HomeScreen({ navigation }) {
       <Text style={styles.title}>🌱 Bienvenido a PodAI</Text>
       <Text style={styles.subtitle}>Acceso rápido a todo</Text>
 
-      <View style={styles.menu}>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("Trees")}
-        >
-          <Text style={styles.cardText}>🌳 Mis Árboles</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Árboles")} // ✅ Nombre del tab
+      >
+        <Text style={styles.buttonText}>🌳 Mis Árboles</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("Community")}
-        >
-          <Text style={styles.cardText}>👥 Comunidad</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Comunidad")} // ✅ Nombre del tab
+      >
+        <Text style={styles.buttonText}>👥 Comunidad</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <Text style={styles.cardText}>🙍‍♂️ Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Perfil")} // ✅ Nombre del tab
+      >
+        <Text style={styles.buttonText}>👤 Perfil</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -36,13 +35,13 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 20,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 10,
   },
@@ -51,19 +50,17 @@ const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 30,
   },
-  menu: {
-    width: "100%",
-  },
-  card: {
+  button: {
     backgroundColor: "#4CAF50",
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 15,
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 10,
+    width: "80%",
     alignItems: "center",
   },
-  cardText: {
+  buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
