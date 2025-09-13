@@ -1,47 +1,44 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🌱 Bienvenido a PodAI</Text>
       <Text style={styles.subtitle}>
-        Tu asistente para el cuidado y poda de bonsáis y arbustos.
+        Tu asistente inteligente para el cuidado y poda de bonsáis y arbustos
       </Text>
 
+      {/* Botón Mis Árboles */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("Trees")}
       >
-        <Ionicons name="leaf-outline" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Mis Árboles</Text>
+        <Text style={styles.buttonText}>🌳 Mis Árboles</Text>
       </TouchableOpacity>
 
+      {/* Botón Comunidad */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("Community")}
       >
-        <Ionicons name="people-outline" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Comunidad</Text>
+        <Text style={styles.buttonText}>🌍 Comunidad</Text>
       </TouchableOpacity>
 
+      {/* Botón Perfil */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("Profile")}
       >
-        <Ionicons name="person-circle-outline" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Perfil</Text>
+        <Text style={styles.buttonText}>👤 Perfil</Text>
       </TouchableOpacity>
 
+      {/* Botón Escaneo IA */}
       <TouchableOpacity
-        style={[styles.button, styles.secondaryButton]}
-        onPress={() => navigation.navigate("NewPhoto")}
+        style={styles.button}
+        onPress={() => navigation.navigate("ScanIA")}
       >
-        <Ionicons name="camera-outline" size={20} color="#4CAF50" />
-        <Text style={[styles.buttonText, { color: "#4CAF50" }]}>
-          Nueva Foto
-        </Text>
+        <Text style={styles.buttonText}>🤖 Escaneo IA</Text>
       </TouchableOpacity>
     </View>
   );
@@ -50,38 +47,35 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#f0f8f5",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
   },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 10, color: "#333" },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#2e7d32",
+  },
   subtitle: {
     fontSize: 16,
-    color: "#666",
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: "center",
+    color: "#555",
   },
   button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#4CAF50",
-    padding: 12,
+    backgroundColor: "#4caf50",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
     marginVertical: 8,
     width: "80%",
-  },
-  secondaryButton: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#4CAF50",
+    alignItems: "center",
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
     color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
-

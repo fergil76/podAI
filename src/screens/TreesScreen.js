@@ -1,55 +1,61 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function TreesScreen({ navigation }) {
+export default function TreesScreen({ navigation, route }) {
+  const [trees, setTrees] = useState([]);
+
+  useEffect(() => {
+    const loadTrees = async () => {
+      const storedTrees = await AsyncStorage.getItem("scannedTrees");
+      if (storedTrees) {
+        setTrees(JSON.parse(storedTrees));
+      }
+    };
+
+    loadTrees();
+  }, [route.params]);
+
+  // Guardamos nuevas fotos escaneadas
+  useEffect(() => {
+    if (route.params?.scannedPhotos) {
+      const newTrees = [...trees, ...route.params.scannedPhotos];
+      setTrees(newTrees);
+      AsyncStorage.setItem("scannedTrees", JSON.stringify(newTrees));
+    }
+  }, [route.params?.scannedPhotos]);
+
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>🌳 Mis Árboles</Text>
 
-      <Text style={styles.subtitle}>
-        Aquí aparecerán los árboles que registres.
-      </Text>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => alert("Aquí luego agregaremos un nuevo árbol")}
-      >
-        <Text style={styles.buttonText}>➕ Agregar árbol</Text>
-      </TouchableOpacity>
-    </View>
+      {trees.length === 0 ? (
+        <Text style={styles.subtitle}>Aún no has escaneado ningún árbol.</Text>
+      ) : (
+        <View style={styles.grid}>
+          {trees.map((uri, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => navigation.navigate("TreeDetail", { photoUri: uri })}
+            >
+              <Image source={{ uri }} style={styles.image} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#f0f8f5",
+    flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
     padding: 20,
+    backgroundColor: "#f0f8f5",
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#2e7d32",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#555",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  button: {
-    backgroundColor: "#4caf50",
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 15 },
+  subtitle: { fontSize: 16, color: "#555" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
+  image: { width: 100, height: 100, margin: 5, borderRadius: 8 },
 });
-
