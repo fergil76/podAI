@@ -1,100 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { View, Button, Image, StyleSheet, TextInput, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function NewPhotoScreen({ navigation }) {
+export default function NewPhotoScreen() {
   const [image, setImage] = useState(null);
-  const [text, setText] = useState('');
 
   useEffect(() => {
     (async () => {
-      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-      const mediaStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (cameraStatus.status !== 'granted' || mediaStatus.status !== 'granted') {
-        Alert.alert("Permisos requeridos", "Se necesitan permisos de cámara y galería");
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permiso requerido", "Necesitamos acceso a la cámara para continuar.");
       }
     })();
   }, []);
 
-  // Tomar foto con cámara
   const takePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+      await AsyncStorage.setItem("lastPhoto", result.assets[0].uri);
     }
   };
 
-  // Elegir desde galería
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
-    }
-  };
-
-  // Guardar publicación
-  const savePost = async () => {
-    if (!image) {
-      Alert.alert("Error", "Debes tomar o elegir una foto primero");
-      return;
-    }
-
-    try {
-      const newPost = { image, text };
-      const storedPosts = await AsyncStorage.getItem('communityPosts');
-      const posts = storedPosts ? JSON.parse(storedPosts) : [];
-      posts.unshift(newPost);
-      await AsyncStorage.setItem('communityPosts', JSON.stringify(posts));
-
-      setImage(null);
-      setText('');
-      navigation.navigate('Comunidad');
-    } catch (error) {
-      console.error("Error guardando publicación", error);
+      await AsyncStorage.setItem("lastPhoto", result.assets[0].uri);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Button title="📸 Tomar foto" onPress={takePhoto} />
-      <Button title="🖼️ Elegir de galería" onPress={pickImage} />
+      <Text style={styles.title}>📷 Nueva Foto</Text>
+      <Text style={styles.subtitle}>Toma una foto o selecciona una de tu galería.</Text>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.button} onPress={takePhoto}>
+          <Ionicons name="camera" size={24} color="white" />
+          <Text style={styles.buttonText}>Cámara</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button} onPress={pickImage}>
+          <Ionicons name="images" size={24} color="white" />
+          <Text style={styles.buttonText}>Galería</Text>
+        </TouchableOpacity>
+      </View>
 
       {image && (
-        <>
+        <View style={styles.previewContainer}>
+          <Text style={styles.previewTitle}>Vista previa:</Text>
           <Image source={{ uri: image }} style={styles.image} />
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe un comentario..."
-            value={text}
-            onChangeText={setText}
-          />
-          <Button title="✅ Publicar" onPress={savePost} />
-        </>
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  image: { width: '100%', height: 300, marginTop: 20, borderRadius: 10 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    width: '100%',
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 5,
+  container: { flex: 1, backgroundColor: "#f0f8f5", alignItems: "center", padding: 20 },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
+  subtitle: { fontSize: 16, color: "#555", marginBottom: 20, textAlign: "center" },
+  buttonRow: { flexDirection: "row", justifyContent: "space-around", width: "100%" },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2e7d32",
+    padding: 12,
+    borderRadius: 10,
+    marginHorizontal: 5,
   },
+  buttonText: { color: "white", marginLeft: 8, fontSize: 16 },
+  previewContainer: { marginTop: 20, alignItems: "center" },
+  previewTitle: { fontSize: 18, fontWeight: "600", marginBottom: 10 },
+  image: { width: 250, height: 250, borderRadius: 15, resizeMode: "cover" },
 });

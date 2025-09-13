@@ -1,47 +1,43 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ onRegister }) {
+  const navigation = useNavigation(); // 👈 aquí también
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleRegister = () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Por favor completa todos los campos");
-      return;
+    if (email && password && password === confirmPassword) {
+      onRegister();
     }
-
-    Alert.alert("Registro exitoso", "Ahora puedes iniciar sesión", [
-      { text: "OK", onPress: () => navigation.replace("Login") },
-    ]);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Crear Cuenta 🌱</Text>
+      <Text style={styles.title}>Crear Cuenta</Text>
 
-      <View style={styles.inputContainer}>
-        <Ionicons name="mail-outline" size={20} color="#6b7280" style={styles.icon} />
-        <TextInput
-          placeholder="Email"
-          keyboardType="email-address"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.icon} />
-        <TextInput
-          placeholder="Contraseña"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
-      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Correo electrónico"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Contraseña"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirmar contraseña"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Registrarse</Text>
@@ -55,21 +51,10 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1, justifyContent:'center', padding:20, backgroundColor:'#f9fafb' },
-  title: { fontSize:28, fontWeight:'700', marginBottom:28, textAlign:'center', color:'#16A34A' },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginBottom: 15,
-    backgroundColor: "#fff",
-  },
-  icon: { marginRight: 6 },
-  input: { flex: 1, height: 45 },
-  button: { backgroundColor:'#16A34A', padding:14, borderRadius:10, alignItems:'center', marginTop:12 },
-  buttonText: { color:'#fff', fontWeight:'700', fontSize:16 },
-  link: { marginTop:15, color:'#16A34A', textAlign:'center' }
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
+  input: { borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 8, marginBottom: 10 },
+  button: { backgroundColor: "#4CAF50", padding: 15, borderRadius: 8, alignItems: "center" },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  link: { marginTop: 15, textAlign: "center", color: "#4CAF50" }
 });
