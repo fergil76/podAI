@@ -4,7 +4,110 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from "react-na
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { spanishSpeciesDatabase, findSpeciesByKeywords } from "../data/speciesDatabase";
-// Función para analizar fotos usando base de datos española
+import { identifyPlant } from "../services/plantNetService";
+
+// Función principal de análisis con PlantNet
+const analyzePhotosWithPlantNet = async (photosArray, plantMode) => {
+  try {
+    console.log('Iniciando análisis con PlantNet...');
+    // Identificar planta usando PlantNet API
+    const plantNetResult = await identifyPlant(photosArray.map(p => p.uri || p));
+    
+    if (plantNetResult.results && plantNetResult.results.length > 0) {
+      const topResult = plantNetResult.results[0];
+      console.log('PlantNet identificó:', topResult.species.scientificNameWithoutAuthor);
+      
+      // Buscar coincidencia en nuestra base de datos española
+      const localMatch = findInSpanishDatabase(topResult.species.scientificNameWithoutAuthor);
+      
+      return formatPlantNetResult(topResult, localMatch, photosArray.length, plantMode);
+    } else {
+      console.log('PlantNet no encontró resultados, usando fallback...');
+      // Fallback a análisis local si PlantNet no encuentra nada
+      return analyzePhotosWithSpanishDB(photosArray, plantMode);
+    }
+  } catch (error) {
+    console.error('Error con PlantNet:', error);
+    // Fallback a análisis local en caso de error
+    return analyzePhotosWithSpanishDB(photosArray, plantMode);
+  }
+};
+
+// Buscar en base de datos española por nombre científico
+const findInSpanishDatabase = (scientificName) => {
+  const entries = Object.entries(spanishSpeciesDatabase);
+  return entries.find(([key, species]) => 
+    species.scientificName.toLowerCase().includes(scientificName.toLowerCase()) ||
+    scientificName.toLowerCase().includes(species.scientificName.toLowerCase())
+  );
+};
+
+// Formatear resultado de PlantNet
+const formatPlantNetResult = (plantNetResult, localMatch, photoCount, plantMode) => {
+  const confidence = plantNetResult.score;
+  const scientificName = plantNetResult.species.scientificNameWithoutAuthor;
+  const commonNames = plantNetResult.species.commonNames;
+  
+  if (localMatch) {
+    // Si encontramos coincidencia en nuestra base española, usar esos datos
+    const [key, species] = localMatch;
+    return {
+      species: `${species.commonNames[0]} (${species.scientificName})`,
+      confidence: Math.min(confidence, 0.95),
+      region: species.region,
+      category: species.category,
+      description: `Identificado por IA: ${species.description}`,
+      isRealIdentification: true,
+      
+      pruningAdvice: {
+        season: species.pruningAdvice.season,
+        type: species.pruningAdvice.type,
+        description: species.pruningAdvice.description,
+        actions: species.pruningAdvice.specificActions.map(action => action.action),
+        benefits: species.pruningAdvice.benefits,
+        isCurrentSeason: checkPruningSeason(species.pruningAdvice.season, new Date().getMonth() + 1),
+        urgency: 'Identificación real por IA'
+      },
+      
+      health: confidence > 0.7 ? 'Bueno' : 'Verificar identificación',
+      reconstructionQuality: `Identificación real - ${photoCount} fotos analizadas`,
+      
+      additionalInfo: {
+        commonPests: species.commonPests || [],
+        diseases: species.diseases || [],
+        plantNetConfidence: (confidence * 100).toFixed(1)
+      }
+    };
+  } else {
+    // Especies no españolas o no en nuestra base de datos
+    return {
+      species: `${commonNames[0] || scientificName} (${scientificName})`,
+      confidence: confidence,
+      region: 'Verificar adaptabilidad a España',
+      category: plantMode === 'bonsai' ? 'bonsai' : 'ornamental',
+      description: `Especie identificada por IA. Verificar si es autóctona de España.`,
+      isRealIdentification: true,
+      
+      pruningAdvice: {
+        season: 'Consultar especialista',
+        type: 'Poda general',
+        description: 'Se recomienda consultar cuidados específicos para esta especie',
+        actions: ['Consultar guías especializadas'],
+        benefits: ['Información específica no disponible']
+      },
+      
+      health: 'Consultar especialista',
+      reconstructionQuality: `Identificación real - ${photoCount} fotos analizadas`,
+      
+      additionalInfo: {
+        plantNetConfidence: (confidence * 100).toFixed(1),
+        recommendation: 'Verificar con especialista en botánica'
+      }
+    };
+  }
+};
+
+// Función para analizar fotos usando base de datos española (fallback)
 const analyzePhotosWithSpanishDB = (photosArray, plantMode) => {
   // Seleccionar especie según el modo
   const getSpeciesByMode = (mode) => {
@@ -162,16 +265,18 @@ export default function ScanAIScreen({ navigation }) {
 
   const saveScanAndReset = async (photosArray) => {
     try {
-      // Analizar fotos con IA española
-const analysis = analyzePhotosWithSpanishDB(photosArray, mode);
+      console.log('Iniciando análisis de fotos...');
+      // Analizar fotos con PlantNet + IA española
+      const analysis = await analyzePhotosWithPlantNet(photosArray, mode);
+      console.log('Análisis completado:', analysis);
 
-const newTree = {
-  id: Date.now(),
-  mode: mode || "unknown",
-  photos: photosArray,
-  analysis: analysis,
-  createdAt: new Date().toISOString(),
-};
+      const newTree = {
+        id: Date.now(),
+        mode: mode || "unknown",
+        photos: photosArray,
+        analysis: analysis,
+        createdAt: new Date().toISOString(),
+      };
 
       const raw = await AsyncStorage.getItem("myTrees");
       const arr = raw ? JSON.parse(raw) : [];
@@ -180,8 +285,8 @@ const newTree = {
 
       // Mensaje y reset
       Alert.alert(
-  `¡${analysis.species} identificado!`,
-  `Confianza: ${(analysis.confidence * 100).toFixed(1)}%. Guardado en Mis Árboles.`,
+        `¡${analysis.species} identificado!`,
+        `Confianza: ${(analysis.confidence * 100).toFixed(1)}%. ${analysis.isRealIdentification ? 'Identificación real por IA.' : 'Análisis local.'} Guardado en Mis Árboles.`,
         [
           {
             text: "Ver Mis Árboles",
