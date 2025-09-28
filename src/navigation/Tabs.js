@@ -1,7 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-
 import HomeScreen from "../screens/HomeScreen";
 import TreesScreen from "../screens/TreesScreen";
 import CommunityScreen from "../screens/CommunityScreen";
@@ -28,7 +27,6 @@ export default function Tabs({ onLogout }) {
         },
         tabBarIcon: ({ color, size }) => {
           let iconName;
-
           switch (route.name) {
             case "Home":
               iconName = "home-outline";
@@ -36,8 +34,8 @@ export default function Tabs({ onLogout }) {
             case "Trees":
               iconName = "leaf-outline";
               break;
-            case "NewPhoto":
-              iconName = "camera-outline";
+            case "FotoRapida":
+              iconName = "flash-outline";
               break;
             case "ScanIA":
               iconName = "scan-outline";
@@ -51,20 +49,40 @@ export default function Tabs({ onLogout }) {
             default:
               iconName = "ellipse-outline";
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Trees" component={TreesScreen} />
-      <Tab.Screen name="NewPhoto" component={NewPhotoScreen} />
-      <Tab.Screen name="ScanIA" component={ScanAIScreen} />
-      <Tab.Screen name="Community" component={CommunityScreen} />
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ tabBarLabel: "Inicio" }}
+      />
+      <Tab.Screen 
+        name="Trees" 
+        component={TreesScreen} 
+        options={{ tabBarLabel: "Mis Árboles" }}
+      />
+      <Tab.Screen 
+        name="FotoRapida" 
+        component={NewPhotoScreen} 
+        options={{ tabBarLabel: "Foto Rápida" }}
+      />
+      <Tab.Screen 
+        name="ScanIA" 
+        component={ScanAIScreen} 
+        options={{ tabBarLabel: "Escaneo IA" }}
+      />
+      <Tab.Screen 
+        name="Community" 
+        component={CommunityScreen} 
+        options={{ tabBarLabel: "Comunidad" }}
+      />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         initialParams={{ onLogout }}
+        options={{ tabBarLabel: "Perfil" }}
       />
     </Tab.Navigator>
   );

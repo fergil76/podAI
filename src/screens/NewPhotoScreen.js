@@ -14,19 +14,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { analyzePhotosWithPlantNet } from "../utils/photoAnalysis";
 
-export default function NewPhotoScreen({ navigation }) {
-  const [mode, setMode] = useState(null); // null, 'single', 'multiple'
-  const [images, setImages] = useState([]);
-  const [currentStep, setCurrentStep] = useState(0);
+export default function QuickPhotoScreen({ navigation }) {
+  const [image, setImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-
-  const multipleSteps = [
-    { name: "Vista Principal", instruction: "Foto general de la planta" },
-    { name: "Detalle Hojas", instruction: "Acércate a las hojas" },
-    { name: "Tronco/Tallo", instruction: "Foto del tronco o tallo principal" },
-    { name: "Vista Lateral", instruction: "Foto desde un lado" }
-  ];
 
   useEffect(() => {
     requestPermissions();
@@ -41,17 +32,6 @@ export default function NewPhotoScreen({ navigation }) {
     }
   };
 
-  const startQuickMode = async () => {
-    setMode('single');
-    await takePhoto();
-  };
-
-  const startDetailedMode = () => {
-    setMode('multiple');
-    setCurrentStep(0);
-    setImages([]);
-  };
-
   const takePhoto = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -61,26 +41,9 @@ export default function NewPhotoScreen({ navigation }) {
       });
 
       if (!result.canceled) {
-        const newImage = {
-          uri: result.assets[0].uri,
-          step: mode === 'multiple' ? currentStep : 0,
-          type: mode === 'multiple' ? multipleSteps[currentStep]?.name || 'multiple' : 'single'
-        };
-
-        const updatedImages = [...images, newImage];
-        setImages(updatedImages);
-
-        if (mode === 'multiple') {
-          if (currentStep < multipleSteps.length - 1) {
-            setCurrentStep(currentStep + 1);
-          } else {
-            // Completado el modo múltiple
-            await analyzeImages(updatedImages);
-          }
-        } else {
-          // Modo simple: analizar inmediatamente
-          await analyzeImages(updatedImages);
-        }
+        const imageUri = result.assets[0].uri;
+        setImage(imageUri);
+        await analyzeQuickPhoto(imageUri);
       }
     } catch (error) {
       console.error("Error tomando foto:", error);
@@ -90,7 +53,6 @@ export default function NewPhotoScreen({ navigation }) {
 
   const pickFromGallery = async () => {
     try {
-      setMode('single');
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         quality: 0.8,
@@ -98,15 +60,9 @@ export default function NewPhotoScreen({ navigation }) {
       });
 
       if (!result.canceled) {
-        const newImage = {
-          uri: result.assets[0].uri,
-          step: 0,
-          type: 'gallery'
-        };
-
-        const updatedImages = [newImage];
-        setImages(updatedImages);
-        await analyzeImages(updatedImages);
+        const imageUri = result.assets[0].uri;
+        setImage(imageUri);
+        await analyzeQuickPhoto(imageUri);
       }
     } catch (error) {
       console.error("Error seleccionando imagen:", error);
@@ -114,164 +70,125 @@ export default function NewPhotoScreen({ navigation }) {
     }
   };
 
-  const analyzeImages = async (imagesToAnalyze) => {
+  const analyzeQuickPhoto = async (imageUri) => {
     try {
       setIsAnalyzing(true);
       
-      // Usar la misma función de análisis que ScanAI
-      const plantMode = imagesToAnalyze.length > 1 ? 'big' : 'single';
-      const analysisResult = await analyzePhotosWithPlantNet(
-        imagesToAnalyze.map(img => img.uri), 
-        plantMode
-      );
+      // Análisis básico para identificación rápida
+      const analysisResult = await analyzePhotosWithPlantNet([imageUri], 'quick');
       
       setAnalysis(analysisResult);
       
-      // Guardar en el sistema como las otras plantas
-      await saveAnalyzedPlant(imagesToAnalyze, analysisResult);
+      // Guardar solo para historial básico
+      await saveQuickPhoto(imageUri, analysisResult);
       
     } catch (error) {
-      console.error("Error analizando imágenes:", error);
+      console.error("Error analizando imagen:", error);
       Alert.alert("Error", "No se pudo analizar la imagen. Intenta de nuevo.");
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const saveAnalyzedPlant = async (imagesToSave, analysisResult) => {
+  const saveQuickPhoto = async (imageUri, analysisResult) => {
     try {
-      const newTree = {
+      // Guardar como lastPhoto para compatibilidad
+      await AsyncStorage.setItem("lastPhoto", imageUri);
+      
+      // Guardar en historial simple (opcional, sin análisis completo)
+      const quickHistory = await AsyncStorage.getItem("quickPhotoHistory");
+      const history = quickHistory ? JSON.parse(quickHistory) : [];
+      
+      const quickEntry = {
         id: Date.now(),
-        mode: imagesToSave.length > 1 ? "multiple" : "single",
-        photos: imagesToSave.map(img => img.uri),
-        analysis: analysisResult,
+        photo: imageUri,
+        species: analysisResult.species,
+        confidence: analysisResult.confidence,
         createdAt: new Date().toISOString(),
-        source: "NewPhoto"
       };
-
-      const stored = await AsyncStorage.getItem("myTrees");
-      const trees = stored ? JSON.parse(stored) : [];
-      trees.unshift(newTree);
-      await AsyncStorage.setItem("myTrees", JSON.stringify(trees));
-
-      // También guardar como lastPhoto para compatibilidad
-      await AsyncStorage.setItem("lastPhoto", imagesToSave[0].uri);
+      
+      history.unshift(quickEntry);
+      // Mantener solo las últimas 10 fotos rápidas
+      const limitedHistory = history.slice(0, 10);
+      await AsyncStorage.setItem("quickPhotoHistory", JSON.stringify(limitedHistory));
       
     } catch (error) {
-      console.error("Error guardando planta:", error);
+      console.error("Error guardando foto rápida:", error);
     }
   };
 
   const resetSession = () => {
-    setImages([]);
-    setCurrentStep(0);
+    setImage(null);
     setAnalysis(null);
-    setMode(null);
   };
 
-  const viewResults = () => {
-    navigation.navigate('Trees');
-    resetSession();
+  const navigateToDetailedAnalysis = () => {
+    Alert.alert(
+      "Análisis Detallado",
+      "Para obtener consejos completos de poda, usa 'Escaneo IA' que analiza múltiples fotos.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Ir a Escaneo IA", 
+          onPress: () => {
+            resetSession();
+            navigation.navigate('ScanIA');
+          }
+        }
+      ]
+    );
   };
 
-  // Pantalla de selección de modo
-  if (!mode && images.length === 0 && !analysis) {
+  // Pantalla inicial
+  if (!image && !analysis) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>📷 Nueva Foto</Text>
+          <Text style={styles.title}>📷 Foto Rápida</Text>
           <Text style={styles.subtitle}>
-            Elige cómo quieres capturar tu planta para obtener el mejor análisis
+            Identificación y cuidados básicos
           </Text>
         </View>
 
-        <View style={styles.modeSelector}>
-          <TouchableOpacity 
-            style={[styles.modeCard, styles.quickMode]}
-            onPress={startQuickMode}
-          >
-            <Ionicons name="camera" size={32} color="#2e7d32" />
-            <Text style={styles.modeTitle}>Foto Rápida</Text>
-            <Text style={styles.modeDescription}>
-              Una sola foto para identificación básica
-            </Text>
-            <View style={styles.modeFeatures}>
-              <Text style={styles.feature}>• Identificación instantánea</Text>
-              <Text style={styles.feature}>• Consejos básicos de cuidado</Text>
+        <View style={styles.mainOptions}>
+          <TouchableOpacity style={styles.cameraOption} onPress={takePhoto}>
+            <View style={styles.optionIcon}>
+              <Ionicons name="camera" size={48} color="#2e7d32" />
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.modeCard, styles.detailedMode]}
-            onPress={startDetailedMode}
-          >
-            <Ionicons name="images" size={32} color="#1976d2" />
-            <Text style={styles.modeTitle}>Análisis Detallado</Text>
-            <Text style={styles.modeDescription}>
-              Múltiples fotos para análisis completo
+            <Text style={styles.optionTitle}>Tomar Foto</Text>
+            <Text style={styles.optionDescription}>
+              Toma una única foto para un análisis básico
             </Text>
-            <View style={styles.modeFeatures}>
-              <Text style={styles.feature}>• {multipleSteps.length} fotos guiadas</Text>
-              <Text style={styles.feature}>• Análisis completo de poda</Text>
-              <Text style={styles.feature}>• Consejos personalizados</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.galleryOption} onPress={pickFromGallery}>
+            <View style={styles.optionIcon}>
+              <Ionicons name="images" size={48} color="#1976d2" />
             </View>
+            <Text style={styles.optionTitle}>Seleccionar de Galería</Text>
+            <Text style={styles.optionDescription}>
+              Identificación rápida desde galería
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.galleryButton} onPress={pickFromGallery}>
-          <Ionicons name="folder-open" size={20} color="#2e7d32" />
-          <Text style={styles.galleryButtonText}>Seleccionar de Galería</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Pantalla de captura (modo múltiple)
-  if (mode === 'multiple' && currentStep < multipleSteps.length && !analysis) {
-    const step = multipleSteps[currentStep];
-    
-    return (
-      <View style={styles.captureContainer}>
-        <View style={styles.captureHeader}>
-          <TouchableOpacity onPress={resetSession}>
-            <Ionicons name="close" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text style={styles.stepCounter}>
-            {currentStep + 1} de {multipleSteps.length}
-          </Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        <View style={styles.progressBar}>
-          <View 
-            style={[
-              styles.progressFill, 
-              { width: `${((currentStep + 1) / multipleSteps.length) * 100}%` }
-            ]} 
-          />
-        </View>
-
-        <View style={styles.instructionCard}>
-          <Text style={styles.stepTitle}>{step.name}</Text>
-          <Text style={styles.stepInstruction}>{step.instruction}</Text>
-        </View>
-
-        <View style={styles.captureArea}>
-          <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
-            <Ionicons name="camera" size={32} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {images.length > 0 && (
-          <View style={styles.thumbnailRow}>
-            <Text style={styles.thumbnailTitle}>Fotos capturadas:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {images.map((img, index) => (
-                <Image key={index} source={{ uri: img.uri }} style={styles.thumbnail} />
-              ))}
-            </ScrollView>
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={24} color="#f59e0b" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Foto Rápida vs Escaneo IA</Text>
+            <Text style={styles.infoText}>
+              • Foto Rápida: Identificación básica{'\n'}
+              • Escaneo IA: Análisis completo + consejos de poda
+            </Text>
           </View>
-        )}
+        </View>
+
+        <TouchableOpacity style={styles.detailedAnalysisLink} onPress={navigateToDetailedAnalysis}>
+          <Text style={styles.detailedAnalysisText}>
+            ¿Necesitas consejos de poda? Prueba Escaneo IA
+          </Text>
+          <Ionicons name="arrow-forward" size={16} color="#2e7d32" />
+        </TouchableOpacity>
       </View>
     );
   }
@@ -280,10 +197,11 @@ export default function NewPhotoScreen({ navigation }) {
   if (isAnalyzing) {
     return (
       <View style={styles.analysisContainer}>
-        <ActivityIndicator size="large" color="#2e7d32" />
-        <Text style={styles.analysisTitle}>Analizando tu planta...</Text>
+        <Image source={{ uri: image }} style={styles.analyzingImage} />
+        <ActivityIndicator size="large" color="#2e7d32" style={styles.loader} />
+        <Text style={styles.analysisTitle}>Identificando tu planta...</Text>
         <Text style={styles.analysisSubtitle}>
-          Identificando especie y generando consejos personalizados
+          Analizando características visuales
         </Text>
       </View>
     );
@@ -294,272 +212,230 @@ export default function NewPhotoScreen({ navigation }) {
     return (
       <ScrollView style={styles.resultsContainer}>
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsTitle}>¡Análisis Completado!</Text>
-          <TouchableOpacity onPress={resetSession} style={styles.newAnalysisButton}>
-            <Ionicons name="add" size={20} color="#2e7d32" />
-            <Text style={styles.newAnalysisText}>Nueva Foto</Text>
+          <Text style={styles.resultsTitle}>Identificación Completada</Text>
+          <TouchableOpacity onPress={resetSession} style={styles.newPhotoButton}>
+            <Ionicons name="camera" size={20} color="#2e7d32" />
+            <Text style={styles.newPhotoText}>Nueva Foto</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Fotos capturadas */}
-        <View style={styles.photosSection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {images.map((img, index) => (
-              <View key={index} style={styles.resultPhoto}>
-                <Image source={{ uri: img.uri }} style={styles.resultImage} />
-                <Text style={styles.photoType}>{img.type}</Text>
-              </View>
-            ))}
-          </ScrollView>
+        {/* Foto capturada */}
+        <View style={styles.photoSection}>
+          <Image source={{ uri: image }} style={styles.resultImage} />
         </View>
 
-        {/* Resultados del análisis */}
-        <View style={styles.analysisCard}>
-          <Text style={styles.speciesName}>{analysis.species}</Text>
-          <Text style={styles.confidence}>
-            Confianza: {(analysis.confidence * 100).toFixed(1)}%
-          </Text>
-          <Text style={styles.description}>{analysis.description}</Text>
-        </View>
-
-        {/* Consejos de poda */}
-        {analysis.pruningAdvice && (
-          <View style={styles.adviceCard}>
-            <Text style={styles.adviceTitle}>✂️ Consejos de Poda</Text>
-            <Text style={styles.pruningType}>{analysis.pruningAdvice.type}</Text>
-            <Text style={styles.pruningSeason}>Época: {analysis.pruningAdvice.season}</Text>
-            
-            {analysis.pruningAdvice.actions && (
-              <View style={styles.actionsList}>
-                {analysis.pruningAdvice.actions.slice(0, 3).map((action, index) => (
-                  <Text key={index} style={styles.actionItem}>• {action}</Text>
-                ))}
-              </View>
-            )}
+        {/* Resultados básicos */}
+        <View style={styles.identificationCard}>
+          <View style={styles.speciesHeader}>
+            <Text style={styles.speciesName}>{analysis.species}</Text>
+            <View style={styles.confidenceBadge}>
+              <Text style={styles.confidenceText}>
+                {(analysis.confidence * 100).toFixed(1)}%
+              </Text>
+            </View>
           </View>
-        )}
+          
+          <Text style={styles.description}>{analysis.description}</Text>
+          
+          {analysis.region && (
+            <View style={styles.regionInfo}>
+              <Ionicons name="location" size={16} color="#6b7280" />
+              <Text style={styles.regionText}>{analysis.region}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Información básica */}
+        <View style={styles.basicInfoCard}>
+          <Text style={styles.basicInfoTitle}>Información Básica</Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="leaf" size={16} color="#2e7d32" />
+            <Text style={styles.infoLabel}>Categoría:</Text>
+            <Text style={styles.infoValue}>{analysis.category || 'No especificada'}</Text>
+          </View>
+          
+          {analysis.pruningAdvice?.season && (
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar" size={16} color="#2e7d32" />
+              <Text style={styles.infoLabel}>Época de poda:</Text>
+              <Text style={styles.infoValue}>{analysis.pruningAdvice.season}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Call to action para análisis detallado */}
+        <View style={styles.upgradeCard}>
+          <View style={styles.upgradeHeader}>
+            <Ionicons name="trending-up" size={24} color="#1976d2" />
+            <Text style={styles.upgradeTitle}>¿Quieres más información?</Text>
+          </View>
+          <Text style={styles.upgradeText}>
+            Para obtener consejos detallados de poda, beneficios específicos y análisis completo, usa Escaneo IA.
+          </Text>
+          <TouchableOpacity style={styles.upgradeButton} onPress={navigateToDetailedAnalysis}>
+            <Text style={styles.upgradeButtonText}>Ir a Escaneo IA</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.viewTreesButton} onPress={viewResults}>
-            <Ionicons name="leaf" size={20} color="#fff" />
-            <Text style={styles.viewTreesText}>Ver en Mis Árboles</Text>
+          <TouchableOpacity style={styles.shareButton} onPress={resetSession}>
+            <Ionicons name="refresh" size={20} color="#2e7d32" />
+            <Text style={styles.shareButtonText}>Otra Foto</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     );
   }
 
-  // Fallback
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Cargando...</Text>
-    </View>
-  );
+  return null;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f8f5",
+    backgroundColor: "#f8fafc",
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 60,
   },
   header: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
-    color: "#2e7d32",
+    color: "#1f2937",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#555",
+    color: "#6b7280",
     textAlign: "center",
     lineHeight: 22,
   },
-  modeSelector: {
-    flex: 1,
-    justifyContent: "center",
+  mainOptions: {
     gap: 20,
+    marginBottom: 30,
   },
-  modeCard: {
+  cameraOption: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-  },
-  quickMode: {
     borderWidth: 2,
-    borderColor: "#2e7d32",
+    borderColor: "#e5f2e5",
   },
-  detailedMode: {
+  galleryOption: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
     borderWidth: 2,
-    borderColor: "#1976d2",
+    borderColor: "#e3f2fd",
   },
-  modeTitle: {
+  optionIcon: {
+    marginBottom: 16,
+  },
+  optionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    marginTop: 12,
+    color: "#1f2937",
     marginBottom: 8,
   },
-  modeDescription: {
+  optionDescription: {
     fontSize: 14,
-    color: "#666",
+    color: "#6b7280",
     textAlign: "center",
-    marginBottom: 12,
   },
-  modeFeatures: {
-    alignItems: "flex-start",
+  infoCard: {
+    flexDirection: "row",
+    backgroundColor: "#fffbeb",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
   },
-  feature: {
-    fontSize: 12,
-    color: "#555",
+  infoContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  infoTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#92400e",
     marginBottom: 4,
   },
-  galleryButton: {
+  infoText: {
+    fontSize: 12,
+    color: "#a16207",
+    lineHeight: 16,
+  },
+  detailedAnalysisLink: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#2e7d32",
-    borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginTop: 20,
   },
-  galleryButtonText: {
-    color: "#2e7d32",
-    fontSize: 16,
-    fontWeight: "500",
-    marginLeft: 8,
-  },
-  captureContainer: {
-    flex: 1,
-    backgroundColor: "#f0f8f5",
-  },
-  captureHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 40,
-  },
-  stepCounter: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: "#E5E7EB",
-    marginHorizontal: 20,
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#2e7d32",
-    borderRadius: 2,
-  },
-  instructionCard: {
-    backgroundColor: "#fff",
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  stepTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#2e7d32",
-    marginBottom: 8,
-  },
-  stepInstruction: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-  },
-  captureArea: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  captureButton: {
-    backgroundColor: "#2e7d32",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  thumbnailRow: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  thumbnailTitle: {
+  detailedAnalysisText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  thumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 8,
+    color: "#2e7d32",
+    fontWeight: "500",
+    marginRight: 4,
   },
   analysisContainer: {
     flex: 1,
-    justifyContent: "center",
+    backgroundColor: "#f8fafc",
     alignItems: "center",
-    backgroundColor: "#f0f8f5",
+    justifyContent: "center",
     padding: 40,
+  },
+  analyzingImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 30,
+  },
+  loader: {
+    marginBottom: 20,
   },
   analysisTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#2e7d32",
-    marginTop: 20,
+    color: "#1f2937",
     marginBottom: 8,
   },
   analysisSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: "#6b7280",
     textAlign: "center",
   },
   resultsContainer: {
     flex: 1,
-    backgroundColor: "#f0f8f5",
+    backgroundColor: "#f8fafc",
   },
   resultsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 60,
   },
   resultsTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#2e7d32",
+    color: "#1f2937",
   },
-  newAnalysisButton: {
+  newPhotoButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
@@ -569,31 +445,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#2e7d32",
   },
-  newAnalysisText: {
+  newPhotoText: {
     color: "#2e7d32",
     marginLeft: 4,
     fontSize: 14,
     fontWeight: "500",
   },
-  photosSection: {
+  photoSection: {
+    alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  resultPhoto: {
-    alignItems: "center",
-    marginRight: 12,
-  },
   resultImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: "100%",
+    height: 240,
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
   },
-  photoType: {
-    fontSize: 10,
-    color: "#666",
-    marginTop: 4,
-  },
-  analysisCard: {
+  identificationCard: {
     backgroundColor: "#fff",
     marginHorizontal: 20,
     marginBottom: 16,
@@ -604,23 +473,46 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  speciesName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#2e7d32",
-    marginBottom: 8,
+  speciesHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
-  confidence: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
+  speciesName: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1f2937",
+    flex: 1,
+    marginRight: 12,
+  },
+  confidenceBadge: {
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  confidenceText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#166534",
   },
   description: {
     fontSize: 14,
-    color: "#374151",
+    color: "#4b5563",
     lineHeight: 20,
+    marginBottom: 12,
   },
-  adviceCard: {
+  regionInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  regionText: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginLeft: 4,
+  },
+  basicInfoCard: {
     backgroundColor: "#fff",
     marginHorizontal: 20,
     marginBottom: 16,
@@ -631,45 +523,84 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  adviceTitle: {
+  basicInfoTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
+    color: "#1f2937",
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
-  pruningType: {
+  infoLabel: {
+    fontSize: 14,
+    color: "#4b5563",
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  infoValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#2e7d32",
-    marginBottom: 4,
+    color: "#1f2937",
+    flex: 1,
   },
-  pruningSeason: {
-    fontSize: 14,
-    color: "#666",
+  upgradeCard: {
+    backgroundColor: "#f0f9ff",
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  upgradeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
-  actionsList: {
-    marginTop: 8,
+  upgradeTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0c4a6e",
+    marginLeft: 8,
   },
-  actionItem: {
-    fontSize: 13,
-    color: "#374151",
-    marginBottom: 4,
-    lineHeight: 18,
+  upgradeText: {
+    fontSize: 14,
+    color: "#0369a1",
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  upgradeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1976d2",
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  upgradeButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 4,
   },
   actionButtons: {
     padding: 20,
   },
-  viewTreesButton: {
+  shareButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2e7d32",
+    backgroundColor: "#fff",
     paddingVertical: 14,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2e7d32",
   },
-  viewTreesText: {
-    color: "#fff",
+  shareButtonText: {
+    color: "#2e7d32",
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
